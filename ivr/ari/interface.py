@@ -76,6 +76,27 @@ class ARIInterface(ARIInterfaceABC):
                     logger.error(f"Request failed after {self.max_retries} attempts: {e}")
                     raise
 
+    async def start_dtmf_detection(self, channel_id: str):
+        url = f"{self.base_url}/ari/channels/{channel_id}/detect/dtmf"
+        await self._make_request('post', url)
+        logger.info(f"Started DTMF detection on channel: {channel_id}")
+
+    async def stop_dtmf_detection(self, channel_id: str):
+        url = f"{self.base_url}/ari/channels/{channel_id}/detect/dtmf"
+        await self._make_request('delete', url)
+        logger.info(f"Stopped DTMF detection on channel: {channel_id}")
+
+    async def wait_for_dtmf(self, channel_id: str, timeout: float = 5.0) -> Optional[Dict[str, Any]]:
+        future = asyncio.get_event_loop().create_future()
+        self.dtmf_events[channel_id] = future
+        try:
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError:
+            logger.info(f"Timeout waiting for DTMF on channel {channel_id}")
+            return None
+        finally:
+            self.dtmf_events.pop(channel_id, None)
+
     async def answer_call(self, channel_id: str) -> None:
         url = f"{self.base_url}/ari/channels/{channel_id}/answer"
         await self._make_request('post', url)
@@ -124,27 +145,3 @@ class ARIInterface(ARIInterfaceABC):
             except websockets.exceptions.WebSocketException as e:
                 logger.error(f"WebSocket error: {e}")
                 await asyncio.sleep(self.retry_delay)
-
-    async def _handle_event(self, event: Dict[str, Any]):
-        """
-        Handle ARI events such as DTMF detection, call state changes, etc.
-        """
-        event_type = event.get('type')
-
-        if event_type == 'ChannelDtmfReceived':
-            channel_id = event['channel']['id']
-            logger.info(f"Received DTMF event on channel {channel_id}: {event['digit']}")
-            if channel_id in self.dtmf_events:
-                self.dtmf_events[channel_id].set_result(event)
-        elif event_type == 'StasisStart':
-            logger.info(f"Call started on channel {event['channel']['id']}")
-        elif event_type == 'StasisEnd':
-            logger.info(f"Call ended on channel {event['channel']['id']}")
-        else:
-            logger.debug(f"Unhandled event type: {event_type}")
-
-
-
-
-
-
