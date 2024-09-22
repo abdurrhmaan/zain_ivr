@@ -1,9 +1,9 @@
 import asyncio
+import logging
 
 async def wait_for_event(condition: asyncio.Condition, timeout: float):
     try:
-        async with asyncio.timeout(timeout):
-            async with condition:
-                await condition.wait()
+        await asyncio.wait_for(condition.wait(), timeout)
     except asyncio.TimeoutError:
-        pass
+        logging.error("Timeout waiting for event")
+

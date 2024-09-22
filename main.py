@@ -3,7 +3,6 @@ import signal
 from ivr.ari.interface import ARIInterface
 from ivr.call_flow.handler import CallHandler
 from ivr.utils.logging import get_logger
-from ivr.config.settings import settings
 
 logger = get_logger(__name__)
 
@@ -15,7 +14,7 @@ def signal_handler(signum, frame):
 
 async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, signal_handler)
+        asyncio.get_event_loop().add_signal_handler(sig, signal_handler, sig, None)
 
     ari = ARIInterface()
     call_handler = CallHandler(ari)
