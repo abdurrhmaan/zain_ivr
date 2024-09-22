@@ -1,0 +1,5 @@
+ivr:
+  welcome_message: "sound:custom/welcome"
+  main_menu_message: "sound:custom/main_menu"
+  timeout: 10
+  max_attempts: 3
